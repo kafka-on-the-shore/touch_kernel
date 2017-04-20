@@ -31,4 +31,5 @@ ${TARGET}.o: ${TARGET}.c
 endif
 
 clean:
-	rm -f *.ko *.o *.mod.o *.mod.c *.symvers *.order
+	rm -f *.ko *.o *.mod.o *.mod.c *.symvers *.order .*.cmd 
+	rm -rf .tmp_versions
