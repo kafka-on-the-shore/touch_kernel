@@ -1,0 +1,18 @@
+Simplefs Guide
+--------------
+
+
+
+test_steps:
+-------------
+only a new terminal and run:
+>  cat /proc/kmsg
+
+type commands in another shell as below:
+>  dd bs=1M count=10 if=/dev/zero of=image
+>  mkdir mnt
+>  insmod simplefs.ko 
+>  mount -o loop -t simplefs image ./mnt/
+>  df -h
+>  umount ./mnt/
+>  rmmod simplefs.ko

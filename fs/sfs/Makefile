@@ -1,18 +1,9 @@
-ifneq ($(KERNELRELEASE),)
-
-mymodule-objs := super.o
-obj-m := super.o
-
-else
-
-PWD := $(shell pwd)
-KDIR :=/lib/modules/`uname -r`/build
+obj-m := simplefs.o
+simplefs-objs := simple.o
 
 all:
-	$(MAKE) -C $(KDIR) M=$(PWD)
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
 
 clean:
-	rm -rf *.mod.c *.ko *.o *.order *.symvers .super.* .built* .tmp*
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
 
-
-endif
