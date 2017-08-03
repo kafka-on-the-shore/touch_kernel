@@ -1,14 +1,42 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/fs.h>
+#include <linux/buffer_head.h>
+#include <linux/slab.h>
 
-#include "simple.h"
+#include "super.h"
 
 static int simplefs_readdir(struct file *filp, void *dirent, filldir_t filldir)
 {
-    //ls will list nothing as of now.
-    printk(KERN_INFO "I'm reading dir now\n");
-    return 0;
+    loff_t pos = filp->f_pos;
+    struct inode *inode = filp->f_dentry->d_inode;
+    struct super_block *sb = inode->i_sb;
+    struct buffer_head *bh;
+    struct simplefs_inode *sfs_inode;
+    struct simplefs_dir_record *record;
+    int i;
+
+    printk(KERN_INFO "Inside dir: pos [%lld], inode number[%lu], sb magic[%lu]\n", \
+        pos, inode->i_ino, sb->s_magic);
+
+    sfs_inode = inode->i_private;
+
+    if (unlikely(!S_ISDIR(sfs_inode->mode))) {
+        printk(KERN_ERR "inode %u is not a directory", sfs_inode->inode_no);
+        return -ENOTDIR;
+    }
+
+    bh = (struct buffer_head *)sb_bread(sb, sfs_inode->data_block_number);
+
+    record = (struct simplefs_dir_record *)bh->b_data;
+    for (i = 0; i < sfs_inode->dir_children_count; i++) {
+        printk(KERN_INFO "Got filename: %s\n", record->filename);
+        filldir(dirent, record->filename, SIMPLEFS_FILENAME_MAXLEN, pos, record->inode_no, DT_UNKNOWN);
+
+        pos += sizeof(struct simplefs_dir_record);
+        record++;
+    }
+    return 1;
 }
 
 const struct file_operations simplefs_dir_operations = {
@@ -60,13 +88,38 @@ struct inode * simplefs_get_inode(struct super_block *sb,
 
 int simplefs_fill_super(struct super_block *sb, void *data, int silent)
 {
-    struct inode *inode;
+    struct inode *root_inode;
+    struct buffer_head *bh;
+    struct simplefs_super_block *sb_disk;
 
-    sb->s_magic = SIMPLEFS_MAGIC;
-    inode = simplefs_get_inode(sb, NULL, S_IFDIR, 0); //2->3
-    inode->i_op = &simplefs_inode_ops;
-    inode->i_fop = &simplefs_dir_operations; //2->3
-    sb->s_root = d_make_root(inode);
+    //fs infomation should be loaded from superblock as below:
+    bh = (struct buffer_head *)sb_bread(sb, 0);
+
+    sb_disk = (struct simplefs_super_block *)bh->b_data;
+
+    printk(KERN_INFO "The magic number obtained in disk is: [%d]\n", sb_disk->magic);
+    if (unlikely(sb_disk->magic != SIMPLEFS_MAGIC)) {
+        printk(KERN_ERR "Bad magic, The fs that you try to mount is not crrectly format of type simplefs");
+        return -EPERM;
+    } else {
+        sb->s_magic = SIMPLEFS_MAGIC;
+    }
+
+    if (unlikely(sb_disk->block_size != SIMPLEFS_DEFAULT_BLOCK_SIZE)) {
+        printk(KERN_ERR "Wrong block size when formated");
+        return -EPERM;
+    }
+
+    sb->s_fs_info = sb_disk;
+    root_inode = new_inode(sb);
+    root_inode->i_ino = SIMPLEFS_ROOT_INODE_NUMBER;
+    inode_init_owner(root_inode, NULL, S_IFDIR);
+    root_inode->i_sb = sb;
+    root_inode->i_op = &simplefs_inode_ops;
+    root_inode->i_fop = &simplefs_dir_operations; //2->3
+    root_inode->i_atime = root_inode->i_mtime = root_inode->i_ctime = CURRENT_TIME;
+    root_inode->i_private = &(sb_disk->root_inode);
+    sb->s_root = d_make_root(root_inode);
     if (!sb->s_root)
         return -ENOMEM;
 

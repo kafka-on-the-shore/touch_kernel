@@ -28,6 +28,11 @@ int main(int argc, char *argv[])
     sb.block_size = SIMPLEFS_DEFAULT_BLOCK_SIZE;
     sb.free_blocks = ~0;
 
+    sb.root_inode.mode = S_IFDIR;
+    sb.root_inode.inode_no = SIMPLEFS_ROOT_INODE_NUMBER;
+    sb.root_inode.data_block_number = SIMPLEFS_ROOTDIR_DATABLOCK_NUMBER;
+    sb.root_inode.dir_children_count = 0;
+
     ret = write(fd, (char *)&sb, sizeof(sb));
 
     if (ret != SIMPLEFS_DEFAULT_BLOCK_SIZE)
