@@ -3,10 +3,13 @@
 #define SIMPLEFS_FILENAME_MAXLEN 255
 
 /* disk block where super block is stored */
-#define SIMPLEFS_SUPERBLOCK_INODE_NUMBER 0
+#define SIMPLEFS_SUPERBLOCK_BLOCK_NUMBER 0
+
+/* disk block where inodes are stored */
+#define SIMPLEFS_INODESTORE_BLOCK_NUMBER 1
 
 /* disk block where root inode is stored */
-#define SIMPLEFS_ROOT_INODE_NUMBER 1
+#define SIMPLEFS_ROOTDIR_INODE_NUMBER 1
 
 /* disk block of data of root dir itself stored */
 #define SIMPLEFS_ROOTDIR_DATABLOCK_NUMBER 2
@@ -14,30 +17,30 @@
 
 struct simplefs_inode {
     mode_t mode;
-    uint32_t inode_no;
-    uint32_t data_block_number;
+    uint64_t inode_no;
+    uint64_t data_block_number;
 
     union {
-        uint32_t file_size;
-        uint32_t dir_children_count;
+        uint64_t file_size;
+        uint64_t dir_children_count;
     };
 };
 
 struct simplefs_super_block {
-    uint32_t version;
-    uint32_t magic;
-    uint32_t block_size;
-    uint32_t free_blocks;
+    uint64_t version;
+    uint64_t magic;
+    uint64_t block_size;
+    uint64_t inodes_count;
+    uint64_t free_blocks;
 
     struct simplefs_inode root_inode;
 
-    char padding[SIMPLEFS_DEFAULT_BLOCK_SIZE - 4*sizeof(uint32_t) \
-        - sizeof(struct simplefs_inode)];
+    char padding[SIMPLEFS_DEFAULT_BLOCK_SIZE - 5*sizeof(uint32_t)]; 
 };
 
 struct simplefs_dir_record {
     char filename[SIMPLEFS_FILENAME_MAXLEN];
-    uint32_t inode_no;
+    uint64_t inode_no;
 };
 
 struct simplefs_dir_contents {
