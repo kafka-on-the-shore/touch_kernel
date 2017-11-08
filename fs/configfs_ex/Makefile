@@ -1,5 +1,5 @@
-obj-m := configfs_example.o
-configfs_ex-objs := configfs_example.o
+obj-m := configfs_childless.o configfs_simple_children.o
+configfs_ex-objs := configfs_childless.o configfs_simple_children.o
 
 
 all:
